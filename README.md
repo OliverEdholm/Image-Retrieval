@@ -17,6 +17,7 @@ Just do this command.
 python3 vectorize_pretrained.py --model_path=<model_path> --model_type=<model_type> --layer_to_extract=<layer_to_extract>
 ```
 What does these arguments mean?
+
 **model_path**: Path to pretrained model. e.g ./inception_v4.ckpt
 
 **model_type**: Type of model, either VGG16, VGG19, InceptionV3 or InceptionV4. e.g InceptionV4
@@ -32,6 +33,7 @@ To evaluate your vectors you can do this command.
 python3 evaluation.py --vectors_path=<vectors_path> --image_path=<image_path>
 ```
 What does these arguments mean?
+
 **vectors_path**: Where vectors are saved. e.g vectors/vectors_1
 
 **image_path**: Image to evaluate on, i.e the image to check nearest neighbour on. e.g img.jpg
