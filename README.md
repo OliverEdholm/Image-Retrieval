@@ -11,6 +11,8 @@ Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 
 
 
 ### Usage
+Firstly put your images in the **images** folder.
+
 **Embdedding images and saving them**
 Just do this command.
 ```
