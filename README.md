@@ -1,5 +1,5 @@
 # Image-Retrieval
-Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 and InceptionV4 feature vectors.
+Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 and InceptionV4 pretrained networks and own trained Convolutional autoencoder.
 
 
 ### Requirements
@@ -14,6 +14,25 @@ Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 
 Firstly put your images in the **images** folder.
 
 **Embdedding images and saving them**
+**Get embedding from trained Convolutional autoencoder**
+To train a Convolutional autoencoder to vectorize images do this command:
+```
+python3 autoencoder_training.py
+```
+You can get a look at the hyperparameters using.
+```
+python3 autoencoder_training.py --help
+```
+The same principles follow in all the other scripts.
+
+**Embedding with autoencoder**
+Just do this command.
+```
+python3 vectorize_autoencoder.py
+```
+
+
+**Get embedding from pretrained models**
 Just do this command.
 ```
 python3 vectorize_pretrained.py --model_path=<model_path> --model_type=<model_type> --layer_to_extract=<layer_to_extract>
@@ -29,6 +48,7 @@ What does these arguments mean?
 This command will save the vectors in a file in the vectors folder and will print out the path to the vectors for later
 use or evaluation at the end of the program.
 
+
 **Evaluating**
 To evaluate your vectors you can do this command.
 ```
@@ -40,12 +60,12 @@ What does these arguments mean?
 
 **image_path**: Image to evaluate on, i.e the image to check nearest neighbour on. e.g img.jpg
 
+
 ### Todos
-* Add bottleneck layer from trained Convolutional Autoencoder as feature vector.
 * More ways of doing NN search.
+* Clean the code!
 * Adversarial loss on autoencoder.
-* Visualize embeddings through tensorboard.
-* Clean the code.
+
 
 ### Other
 Made by Oliver Edholm, 14 years old.
