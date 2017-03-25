@@ -43,7 +43,9 @@ What does these arguments mean?
 ### Todos
 * Add bottleneck layer from trained Convolutional Autoencoder as feature vector.
 * More ways of doing NN search.
+* Adversarial loss on autoencoder.
 * Visualize embeddings through tensorboard.
+* Clean the code.
 
 ### Other
 Made by Oliver Edholm, 14 years old.
