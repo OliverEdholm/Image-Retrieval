@@ -7,17 +7,20 @@ Oliver Edholm, 14 years old 2017-03-23 13:11
 '''
 # imports
 from vector_file_handler import VectorLoader
-from vector_file_handler import VECTORS_FILE_NAME
 from vector_file_handler import METADATA_FILE_NAME
 from vector_file_handler import TYPE_FILE_NAME
-from vectorize_pretrained import load_image
+from vectorize_pretrained import load_image as pretrained_load_image
 from vectorize_pretrained import build_graph
 from vectorize_pretrained import BATCH_SIZE
+from vectorize_autoencoder import get_checkpoint_path
+from autoencoder_training import load_image as autoencoder_load_image
+from autoencoder_training import build_model
 
 import os
 import argparse
 import logging
 from six.moves import cPickle as pickle
+from six.moves import xrange
 
 import numpy as np
 from scipy.spatial.distance import cosine
@@ -30,17 +33,18 @@ slim = tf.contrib.slim
 logging.basicConfig(level=logging.DEBUG)
 
 # variables
-parser = argparse.ArgumentParser(description='Program evaluating vectors ' \
-                                              'created.')
-parser.add_argument('--image_path', help='Path to image to evaluate ')
-parser.add_argument('--vectors_path', help='Path to folder where metadata ' \
-                                           'and vectors are saved.')
-parser.add_argument('--similarity_func',
-                    help='Which distance function to use to get distance ' \
-                         'between two vectors. Functions currently ' \
-                         'availible are: cosine and euclidean.', nargs='?', 
-                          const='cosine', default='cosine')
-ARGS = parser.parse_args()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Program evaluating vectors ' \
+                                                  'created.')
+    parser.add_argument('--image_path', help='Path to image to evaluate ')
+    parser.add_argument('--vectors_path', help='Path to folder where metadata ' \
+                                               'and vectors are saved.')
+    parser.add_argument('--similarity_func',
+                        help='Which distance function to use to get distance ' \
+                             'between two vectors. Functions currently ' \
+                             'availible are: cosine and euclidean.', nargs='?', 
+                              const='cosine', default='cosine')
+    ARGS = parser.parse_args()
 
 
 # functions
@@ -68,12 +72,30 @@ def load_vector_data(vector_dir_path):
     return vector_generator, args, vector_type
 
 
-def get_pretrained_vector(image_path, args):
-    image = load_image(image_path, args)
+def get_autoencoder_vector(image_path, args):
+    image = autoencoder_load_image(image_path)
     batch = [image]
-    for _ in range(BATCH_SIZE - 1):
-        batch.append(np.zeros([image.shape[0], image.shape[1],
-                               image.shape[2]]))  # arbitrary size
+    for _ in xrange(args.batch_size - 1):
+        batch.append(np.zeros(image.shape))
+
+    inp, bottleneck, output = build_model(args)
+
+    saver = tf.train.Saver()
+
+    init = tf.global_variables_initializer()
+    with tf.Session() as sess:
+        sess.run(init)
+
+        saver.restore(sess, get_checkpoint_path(args))
+        vectors = sess.run(bottleneck, feed_dict={inp: batch})
+        return list(vectors)[0]
+
+
+def get_pretrained_vector(image_path, args):
+    image = pretrained_load_image(image_path, args)
+    batch = [image]
+    for _ in xrange(BATCH_SIZE - 1):
+        batch.append(np.zeros(image.shape))  # arbitrary size
 
     vectorize_op, inps_placeholder = build_graph(args)
 
@@ -94,8 +116,10 @@ def main():
 
     if vector_type == 'pretrained':
         image_vector = get_pretrained_vector(ARGS.image_path, args)
+    elif vector_type == 'autoencoder':
+        image_vector = get_autoencoder_vector(ARGS.image_path, args)
     else:
-        raise 'Unknown vector type: {}'.format(vector_type)
+        raise Exception('Unknown vector type: {}'.format(vector_type))
 
     if len(image_vector.shape) != 1:
         image_vector = image_vector.flatten()

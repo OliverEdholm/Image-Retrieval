@@ -44,8 +44,8 @@ if __name__ == '__main__':
                         nargs='?', const='vectors', default='vectors')
     parser.add_argument('--model_type', nargs='?', const='InceptionV4',
                         default='InceptionV4',
-        help='Which type of architecture pretrained model has. The architectures ' \
-             'currently supported are: InceptionV3, InceptionV4, VGG16 and VGG19.')
+                        help='Which type of architecture pretrained model has. The architectures ' \
+                             'currently supported are: InceptionV3, InceptionV4, VGG16 and VGG19.')
     parser.add_argument('--layer_to_extract', nargs='?', const='Mixed_7a',
                         default='Mixed_7a',
                         help='Which layer to extract from the model.')
@@ -61,23 +61,25 @@ def get_size(args):
     elif args.model_type in ['VGG16', 'VGG19']:
         return VGG_IMAGE_SIZE
     else:
-        raise 'Unknown model type: {}'.format(args.model_type)
+        raise Exception('Unknown model type: {}'.format(args.model_type))
 
 
 def load_image(image_path, args):
     size = get_size(args)
     try:
         image = Image.open(image_path)
-        
         image = image.resize([size, size])
+        image = np.array(image)
 
-        image_array = np.fromstring(image.tobytes(), dtype=np.uint8)
-        image_array = np.reshape(image, [size, size, 3])
+        if len(image.shape) != 3 or \
+                (len(image.shape) == 3 and image.shape[-1] != 3):
+            raise Exception  # :)
+
+        return image
     except:
         logging.debug('error loading {}'.format(image_path))
         return np.zeros([size, size, 3])
 
-    return image_array
 
 def get_vgg16_embedding(image_tensor, model_endpoint,
                         batch_size=BATCH_SIZE):
@@ -87,7 +89,7 @@ def get_vgg16_embedding(image_tensor, model_endpoint,
         model_output = endpoints[model_endpoint]
 
     return tf.stack([model_output[i]
-                    for i in range(batch_size)])
+                    for i in xrange(batch_size)])
 
 
 def get_vgg19_embedding(image_tensor, model_endpoint,
@@ -98,7 +100,7 @@ def get_vgg19_embedding(image_tensor, model_endpoint,
         model_output = endpoints[model_endpoint]
 
     return tf.stack([model_output[i]
-                    for i in range(batch_size)])
+                    for i in xrange(batch_size)])
 
 
 def get_inception_v3_embedding(image_tensor, model_endpoint,
@@ -108,7 +110,7 @@ def get_inception_v3_embedding(image_tensor, model_endpoint,
                                             final_endpoint=model_endpoint)
 
     return tf.stack([tf.reshape(model_output[i], [-1])
-                    for i in range(batch_size)]) 
+                    for i in xrange(batch_size)])
 
 
 def get_inception_v4_embedding(image_tensor, model_endpoint,
@@ -118,7 +120,7 @@ def get_inception_v4_embedding(image_tensor, model_endpoint,
                                             final_endpoint=model_endpoint)
 
     return tf.stack([tf.reshape(model_output[i], [-1])
-                    for i in range(batch_size)]) 
+                    for i in xrange(batch_size)])
 
 
 def get_batches(inputs, batch_size=BATCH_SIZE):
@@ -134,7 +136,7 @@ def get_batches(inputs, batch_size=BATCH_SIZE):
         idx += 1
 
     if cur_batch:
-        for _ in range(batch_size - len(cur_batch)):
+        for _ in xrange(batch_size - len(cur_batch)):
             cur_batch.append(np.zeros(cur_batch[0].shape))
 
         yield cur_batch
@@ -146,7 +148,7 @@ def build_graph(args):
 
     inps = [tf.placeholder(tf.float32, shape=[size, size, 3],
                            name='inp{}'.format(i + 1))
-            for i in range(BATCH_SIZE)]
+            for i in xrange(BATCH_SIZE)]
 
     if args.model_type in ['InceptionV3', 'InceptionV4']:
         preprocessing_function = inception_preprocessing.preprocess_for_eval
@@ -198,9 +200,6 @@ def main():
                                feed_dict=dict(zip(inps_placeholder, image_batch)))
             
             for vector in vectors:
-                if len(vector.shape) != 1:
-                    vector = vector.flatten()
-
                 vector_saver.add_vector(image_paths[idx], vector)
 
                 idx += 1

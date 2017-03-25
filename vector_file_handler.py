@@ -28,7 +28,10 @@ class VectorSaver:
     def _bytes_feature(self, value):
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
 
-    def add_vector(self, name, vector):
+    def add_vector(self, name, vector, flatten=True):
+        if flatten and len(vector.shape) != 1:
+            vector = vector.flatten()
+
         example = tf.train.Example(features=tf.train.Features(feature={
                                 'name': self._bytes_feature(name.encode()),
                                 'vector_raw': self._bytes_feature(vector.tostring())}))
@@ -89,7 +92,7 @@ def mark_type(vector_dir_path, is_pretrained):
         if is_pretrained:
             txt_file.write('pretrained')
         else:
-            txt_file.write('autoencoder')  # will be implemented later
+            txt_file.write('autoencoder')
 
 
 def establish_vectors_folder(vectors_path, args, is_pretrained):
@@ -98,12 +101,3 @@ def establish_vectors_folder(vectors_path, args, is_pretrained):
     mark_type(path, is_pretrained)
 
     return path
-    
-
-def main():
-    pass
-
-
-if __name__ == '__main__':
-    main()
-    
