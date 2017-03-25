@@ -14,6 +14,7 @@ Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 
 Firstly put your images in the **images** folder.
 
 **Embdedding images and saving them**
+
 **Get embedding from trained Convolutional autoencoder**
 To train a Convolutional autoencoder to vectorize images do this command:
 ```
