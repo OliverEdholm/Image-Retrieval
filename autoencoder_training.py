@@ -6,26 +6,23 @@ Trains a Convolutional autoencoder that'll be later used to vectorize images.
 Oliver Edholm, 14 years old 2017-03-24 09:46
 '''
 # imports
-import os
-import logging
 import argparse
+import logging
+import os
 from functools import partial
-from six.moves import cPickle as pickle
 
 import numpy as np
 import tensorflow as tf
-from PIL import Image
 from tqdm import tqdm
+
+from utils import configs
+from utils.ops import load_image
+from utils.ops import save_pkl_file
 
 # setup
 logging.basicConfig(level=logging.DEBUG)
 
 # variables
-IMAGE_INPUT_SIZE = 128
-TENSORBOARD_NAME = 'tb'
-MODEL_CHECKPOINT_NAME = 'model{}.ckpt'
-METADATA_FILE_NAME = 'metadata.pkl'
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Trains a Convolutional ' \
                                                  ' autoencoder that\'ll be' \
@@ -72,19 +69,6 @@ if __name__ == '__main__':
 
 
 # functions
-def save_pkl_file(data, file_path):
-    with open(file_path, 'wb') as pkl_file:
-        pkl_file.flush()
-        pickle.dump(data, pkl_file)
-
-
-def load_image(image_path):
-    image = Image.open(image_path)
-    image = image.resize([IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE])
-
-    return np.array(image)
-
-
 def images_to_tfrecord(args):
     def _bytes_feature(value):
         return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -101,16 +85,11 @@ def images_to_tfrecord(args):
     writer = tf.python_io.TFRecordWriter(args.processed_images_path)
 
     for image_path in tqdm(image_paths):
-        try:
-            image = load_image(image_path)
-        except:
-            logging.info('error loading {}'.format(image_path))
-            continue
+        image = load_image(image_path,
+                           size=[configs.IMAGE_INPUT_SIZE,
+                                 configs.IMAGE_INPUT_SIZE])
 
-        if len(image.shape) != 3 or \
-           (len(image.shape) == 3 and image.shape[-1] != 3):
-            logging.info('skipping image "{}", because of unwanted ' \
-                         'shape {}'.format(image_path, image.shape))
+        if image is None:
             continue
 
         image = image / 255 * 2 - 1  # for hyperbolic tangent
@@ -137,9 +116,10 @@ def read_and_decode(filename_queue, args):
             })
 
         image_raw = tf.decode_raw(features['image_raw'], tf.float32)
-        image = tf.reshape(image_raw, [IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE, 3])
+        image = tf.reshape(image_raw, [configs.IMAGE_INPUT_SIZE,
+                                       configs.IMAGE_INPUT_SIZE, 3])
         images = tf.train.shuffle_batch([image], batch_size=args.batch_size,
-                                        capacity=50, min_after_dequeue=50)
+                                        capacity=5000, min_after_dequeue=1000)
 
     return images
 
@@ -158,8 +138,8 @@ def build_model(args):
                        activation_fn=tf.nn.relu,
                    weights_initializer=tf.contrib.layers.xavier_initializer())
 
-    inp = tf.placeholder(tf.float32, [None, IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE,
-                                      3])
+    inp = tf.placeholder(tf.float32, [None, configs.IMAGE_INPUT_SIZE,
+                                      configs.IMAGE_INPUT_SIZE, 3])
 
     conv1 = conv_layer(inp, 1024)
     conv2 = conv_layer(conv1, 512, stride=2)
@@ -191,7 +171,9 @@ def build_model(args):
 
 
 def main():
-    save_pkl_file(os.path.join(ARGS.training_path, METADATA_FILE_NAME), ARGS)
+    save_pkl_file(ARGS,
+                  os.path.join(ARGS.training_path,
+                               configs.METADATA_FILE_NAME))
 
     if not os.path.exists(ARGS.processed_images_path) or \
        ARGS.replace_img_tfrecord.lower()[0] == 'y':
@@ -225,7 +207,8 @@ def main():
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(coord=coord)
 
-        tensorboard_path = os.path.join(ARGS.training_path, TENSORBOARD_NAME)
+        tensorboard_path = os.path.join(ARGS.training_path,
+                                        configs.TENSORBOARD_NAME)
         train_writer = tf.summary.FileWriter(tensorboard_path, sess.graph)
 
         logging.info('training, you can see the training progress in ' \
@@ -240,7 +223,7 @@ def main():
 
             if step % ARGS.saving_interval == 0:
                 _ = saver.save(sess, os.path.join(ARGS.training_path,
-                                          MODEL_CHECKPOINT_NAME.format(step)))
+                                                  configs.MODEL_CHECKPOINT_NAME.format(step)))
                 print('saved checkpoint at step {}'.format(step))
             if step == ARGS.end_step:
                 break

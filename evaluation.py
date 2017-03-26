@@ -6,27 +6,25 @@ Program for evaluating vectors created.
 Oliver Edholm, 14 years old 2017-03-23 13:11
 '''
 # imports
-from vector_file_handler import VectorLoader
-from vector_file_handler import METADATA_FILE_NAME
-from vector_file_handler import TYPE_FILE_NAME
-from vectorize_pretrained import load_image as pretrained_load_image
-from vectorize_pretrained import build_graph
-from vectorize_pretrained import BATCH_SIZE
-from vectorize_autoencoder import get_checkpoint_path
-from autoencoder_training import load_image as autoencoder_load_image
-from autoencoder_training import build_model
-
-import os
 import argparse
 import logging
-from six.moves import cPickle as pickle
-from six.moves import xrange
+import os
 
 import numpy as np
+import tensorflow as tf
 from scipy.spatial.distance import cosine
 from scipy.spatial.distance import euclidean
+from six.moves import xrange
 
-import tensorflow as tf
+from autoencoder_training import build_model
+from utils import configs
+from utils.ops import get_pkl_file
+from utils.ops import load_image
+from utils.vector_file_handler import VectorLoader
+from vectorize_autoencoder import get_checkpoint_path
+from vectorize_pretrained import build_graph
+from vectorize_pretrained import get_size
+
 slim = tf.contrib.slim
 
 # setup
@@ -35,24 +33,19 @@ logging.basicConfig(level=logging.DEBUG)
 # variables
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Program evaluating vectors ' \
-                                                  'created.')
+                                                 'created.')
     parser.add_argument('--image_path', help='Path to image to evaluate ')
     parser.add_argument('--vectors_path', help='Path to folder where metadata ' \
                                                'and vectors are saved.')
     parser.add_argument('--similarity_func',
                         help='Which distance function to use to get distance ' \
                              'between two vectors. Functions currently ' \
-                             'availible are: cosine and euclidean.', nargs='?', 
-                              const='cosine', default='cosine')
+                             'available are: cosine and euclidean.', nargs='?',
+                        const='cosine', default='cosine')
     ARGS = parser.parse_args()
 
 
 # functions
-def get_pkl_file(file_path):
-    with open(file_path, 'rb') as pkl_file:
-        return pickle.load(pkl_file)
-
-
 def get_similarity_func(name):
     name = name.lower()
     if name in ['cosine', 'cos']:
@@ -65,15 +58,18 @@ def get_similarity_func(name):
 
 def load_vector_data(vector_dir_path):
     vector_generator = VectorLoader(vector_dir_path).get_vectors_generator()
-    args = get_pkl_file(os.path.join(vector_dir_path, METADATA_FILE_NAME))
-    with open(os.path.join(vector_dir_path, TYPE_FILE_NAME)) as txt_file:
+    args = get_pkl_file(os.path.join(vector_dir_path,
+                                     configs.METADATA_FILE_NAME))
+    with open(os.path.join(vector_dir_path, configs.TYPE_FILE_NAME)) \
+            as txt_file:
         vector_type = txt_file.read()
 
     return vector_generator, args, vector_type
 
 
 def get_autoencoder_vector(image_path, args):
-    image = autoencoder_load_image(image_path)
+    image = load_image(image_path, size=[configs.IMAGE_INPUT_SIZE,
+                                         configs.IMAGE_INPUT_SIZE])
     batch = [image]
     for _ in xrange(args.batch_size - 1):
         batch.append(np.zeros(image.shape))
@@ -92,9 +88,10 @@ def get_autoencoder_vector(image_path, args):
 
 
 def get_pretrained_vector(image_path, args):
-    image = pretrained_load_image(image_path, args)
+    size = get_size(args)
+    image = load_image(image_path, size=[size, size])
     batch = [image]
-    for _ in xrange(BATCH_SIZE - 1):
+    for _ in xrange(configs.BATCH_SIZE - 1):
         batch.append(np.zeros(image.shape))  # arbitrary size
 
     vectorize_op, inps_placeholder = build_graph(args)
@@ -110,7 +107,7 @@ def get_pretrained_vector(image_path, args):
                            feed_dict=dict(zip(inps_placeholder, batch)))
         return vectors[0]
 
-    
+
 def main():
     vector_generator, args, vector_type = load_vector_data(ARGS.vectors_path)
 
@@ -137,9 +134,8 @@ def main():
             closest_vector_name = name
 
     print('most similar image to {} is {} with a distance of {}'.format(
-                    ARGS.image_path, closest_vector_name, closest_dist))
+        ARGS.image_path, closest_vector_name, closest_dist))
 
 
 if __name__ == '__main__':
     main()
-

@@ -7,22 +7,18 @@ Oliver Edholm, 14 years old 2017-03-23 06:11
 '''
 # imports
 import os
-from six.moves import cPickle as pickle
 
 import numpy as np
 import tensorflow as tf
 
-# variables
-VECTORS_FOLDER_NAME = 'vectors_{}'
-VECTORS_FILE_NAME = 'vectors.tfrecord'
-METADATA_FILE_NAME = 'metadata.pkl'
-TYPE_FILE_NAME = 'type.txt'
+from utils import configs
+from utils.ops import save_pkl_file
 
 
 # classes
 class VectorSaver:
     def __init__(self, vector_dir_path):
-        path = os.path.join(vector_dir_path, VECTORS_FILE_NAME)
+        path = os.path.join(vector_dir_path, configs.VECTORS_FILE_NAME)
         self.writer = tf.python_io.TFRecordWriter(path)
 
     def _bytes_feature(self, value):
@@ -41,7 +37,7 @@ class VectorSaver:
 
 class VectorLoader:
     def __init__(self, vector_dir_path):
-        path = os.path.join(vector_dir_path, VECTORS_FILE_NAME)
+        path = os.path.join(vector_dir_path, configs.VECTORS_FILE_NAME)
         self.record_iterator = tf.python_io.tf_record_iterator(path=path)
 
     def get_vectors_generator(self):
@@ -64,31 +60,23 @@ class VectorLoader:
 
 
 # function
-def save_pkl_file(data, file_path):
-    with open(file_path, 'wb') as pkl_file:
-        pickle.dump(data, pkl_file)
-
-
-def get_pkl_file(file_path):
-    with open(file_path, 'rb') as pkl_file:
-        return pickle.load(pkl_file)
-
-
 def get_vector_dir_path(vectors_path):
     idx = len(os.listdir(vectors_path)) + 1
 
-    path = os.path.join(vectors_path, VECTORS_FOLDER_NAME.format(idx))
+    path = os.path.join(vectors_path, configs.VECTORS_FOLDER_NAME.format(idx))
     os.makedirs(path)
     
     return path
 
 
 def create_metadata_file(vector_dir_path, args):
-    save_pkl_file(args, os.path.join(vector_dir_path, METADATA_FILE_NAME))
+    save_pkl_file(args, os.path.join(vector_dir_path,
+                                     configs.METADATA_FILE_NAME))
 
 
 def mark_type(vector_dir_path, is_pretrained):
-    with open(os.path.join(vector_dir_path, TYPE_FILE_NAME), 'w') as txt_file:
+    with open(os.path.join(vector_dir_path, configs.TYPE_FILE_NAME),
+              'w') as txt_file:
         if is_pretrained:
             txt_file.write('pretrained')
         else:

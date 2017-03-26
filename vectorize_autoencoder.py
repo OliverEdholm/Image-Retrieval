@@ -7,23 +7,21 @@ autoencoder.
 Oliver Edholm, 14 years old 2017-03-25 17:48
 '''
 # imports
-from vector_file_handler import VectorSaver
-from vector_file_handler import establish_vectors_folder
-from autoencoder_training import build_model
-from autoencoder_training import METADATA_FILE_NAME
-from autoencoder_training import IMAGE_INPUT_SIZE
-
-import os
-import logging
 import argparse
-from tqdm import tqdm
-from six.moves import cPickle as pickle
-from six.moves import xrange
+import logging
+import os
 
 import numpy as np
 import tensorflow as tf
+from six.moves import xrange
 from tqdm import tqdm
-from PIL import Image
+
+from autoencoder_training import build_model
+from utils import configs
+from utils.ops import get_pkl_file
+from utils.ops import load_image
+from utils.vector_file_handler import VectorSaver
+from utils.vector_file_handler import establish_vectors_folder
 
 # setup
 logging.basicConfig(level=logging.DEBUG)
@@ -46,27 +44,6 @@ if __name__ == '__main__':
 
 
 # functions
-def get_pkl_file(file_path):
-    with open(file_path, 'rb') as pkl_file:
-        return pickle.load(pkl_file)
-
-
-def load_image(image_path):
-    try:
-        image = Image.open(image_path)
-        image = image.resize([IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE])
-        image = np.array(image)
-
-        if len(image.shape) != 3 or \
-           (len(image.shape) == 3 and image.shape[-1] != 3):
-            raise Exception  # :)
-
-        return image
-    except:
-        logging.debug('error loading {}'.format(image_path))
-        return np.zeros([IMAGE_INPUT_SIZE, IMAGE_INPUT_SIZE, 3])
-
-
 def get_checkpoint_path(args):
     checkpoints = [name.split('.ckpt')[0] + '.ckpt'
                    for name in os.listdir(args.training_path)
@@ -100,13 +77,17 @@ def get_batches(inputs, args):
 
 def main():
     training_args = get_pkl_file(os.path.join(ARGS.training_path,
-                                              METADATA_FILE_NAME))
+                                              configs.METADATA_FILE_NAME))
 
     image_paths = [os.path.join(ARGS.images_path, file_name)
                    for file_name in os.listdir(ARGS.images_path)]
 
     # using generators to save memory
-    images = (load_image(image_path) for image_path in image_paths)
+    images = (load_image(image_path, size=[configs.IMAGE_INPUT_SIZE,
+                                           configs.IMAGE_INPUT_SIZE],
+                         failure_image=np.zeros([configs.IMAGE_INPUT_SIZE,
+                                                 configs.IMAGE_INPUT_SIZE, 3]))
+              for image_path in image_paths)
     image_batches = get_batches(images, training_args)
 
     inp, bottleneck, output = build_model(training_args)
@@ -136,6 +117,8 @@ def main():
                 idx += 1
                 if idx == len(image_paths):
                     break
+
+    logging.info('saved data at {}'.format(vectors_path))
 
 
 if __name__ == '__main__':
