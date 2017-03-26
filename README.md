@@ -63,6 +63,7 @@ What does these arguments mean?
 
 
 ### Todos
+* Dimensionality reduction using PCA.
 * More ways of doing NN search.
 * Clean the code!
 * Adversarial loss on autoencoder.
