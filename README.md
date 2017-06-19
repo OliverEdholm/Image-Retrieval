@@ -1,5 +1,5 @@
 # Image-Retrieval
-Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 and InceptionV4 pretrained networks and own trained Convolutional autoencoder.
+Image retrieval program made in Tensorflow supporting the pretrained networks VGG16, VGG19, InceptionV3 and InceptionV4 and own trained Convolutional Autoencoder that you can train with this tool.
 
 
 ### Requirements
@@ -7,13 +7,13 @@ Image retrieval program made in Tensorflow supporting VGG16, VGG19, InceptionV3 
 * Tensorflow
 * Pillow
 * tqdm
-* Pretrained VGG16, VGG19, InceptionV3 or InceptionV4 network.
+* Pretrained VGG16, VGG19, InceptionV3 or InceptionV4 network or own trained Convolutional Autoencoder.
 
 
 ### Usage
 Firstly put your images in the **images** folder.
 
-**Embdedding images and saving them**
+**Embedding images and saving them**
 
 **Get embedding from trained Convolutional autoencoder**
 To train a Convolutional autoencoder to vectorize images do this command:
